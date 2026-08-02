@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { getMetrics } from "@/lib/api";
 import FrictionThemeChart from "@/dashboards/FrictionThemeChart";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatTile } from "@/components/ui/StatTile";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Alert } from "@/components/ui/Alert";
 
 type Metrics = {
   pipeline_health?: Record<string, number>;
@@ -28,40 +32,44 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Learning Analytics Dashboard</h1>
-      <p className="text-sm text-gray-600 mb-4">
-        Friction themes, confusion clusters, engagement signals, and quality scores. Backed by{" "}
-        <code>GET /api/metrics</code>.
-      </p>
-      {error && <p className="text-sm text-red-700">{error}</p>}
+      <PageHeader
+        eyebrow="Stage 9 · Governance"
+        title="Learning Analytics Dashboard"
+        description="Friction themes, pipeline health across the full 9-stage lifecycle, and review outcomes — sourced live from GET /api/metrics."
+      />
+
+      {error && <Alert tone="danger">{error}</Alert>}
+
       {metrics && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="border rounded p-3">
-              <div className="text-xs text-gray-500">Total assets</div>
-              <div className="text-2xl font-semibold">{metrics.total_assets ?? 0}</div>
-            </div>
-            <div className="border rounded p-3">
-              <div className="text-xs text-gray-500">Segments indexed</div>
-              <div className="text-2xl font-semibold">{metrics.total_segments_indexed ?? 0}</div>
-            </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatTile label="Total assets" value={metrics.total_assets ?? 0} />
+            <StatTile label="Segments indexed" value={metrics.total_segments_indexed ?? 0} />
           </div>
 
-          <div>
-            <h2 className="text-sm font-semibold mb-2">Pipeline health, by stage</h2>
-            <FrictionThemeChart themes={toThemes(metrics.pipeline_health)} />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pipeline health, by stage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FrictionThemeChart themes={toThemes(metrics.pipeline_health)} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Review outcomes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FrictionThemeChart themes={toThemes(metrics.review_outcomes)} />
+              </CardContent>
+            </Card>
           </div>
 
-          <div>
-            <h2 className="text-sm font-semibold mb-2">Review outcomes</h2>
-            <FrictionThemeChart themes={toThemes(metrics.review_outcomes)} />
-          </div>
-
-          <details className="text-xs">
-            <summary className="cursor-pointer text-gray-500">Raw metrics response</summary>
-            <pre className="bg-gray-50 border rounded p-3 overflow-auto mt-2">
-              {JSON.stringify(metrics, null, 2)}
-            </pre>
+          <details className="rounded-xl2 border border-ink-100 bg-white p-4 text-xs shadow-card">
+            <summary className="cursor-pointer font-medium text-ink-500">Raw metrics response</summary>
+            <pre className="mt-3 overflow-auto rounded-lg bg-ink-50 p-3 text-ink-600">{JSON.stringify(metrics, null, 2)}</pre>
           </details>
         </div>
       )}

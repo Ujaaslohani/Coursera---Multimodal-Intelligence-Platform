@@ -2,7 +2,7 @@
 
 This document explains the pipeline step by step, in plain language, grounded directly in the codebase and in a live verification run against the real Supabase Postgres + pgvector database, real OpenAI embeddings, and real GPT-4o-mini synthesis calls.
 
-> **Status as of this run: all 8 stages work end to end, for all 6 modalities**, over live HTTP and in a real browser, with a passing test suite. This was not true when this document was first written — the backend could not boot, video/OCR pipelines were hard-blocked regardless of environment, `real_data/` was missing, the dashboard chart wasn't wired up, and no browser had ever driven the UI. Every one of those gaps is now closed and re-verified; see §6 for what changed in this pass.
+> **Status as of this run: all 9 lifecycle stages work end to end, for all 6 modalities, through a real agentic pipeline with RBAC, an audit log, and real CLIP visual search** — over live HTTP, in a real browser, with a fully redesigned UI, and a passing test suite (15 pytest + 11 Playwright). This was not true when this document was first written — the backend could not boot, video/OCR pipelines were hard-blocked regardless of environment, `real_data/` was missing, the dashboard chart wasn't wired up, no browser had ever driven the UI, retrieval was text-only, synthesis was a single unchecked LLM call, there was no governance layer, and the frontend was a bare, unstyled shell. §6 covers the first round of fixes; §7 covers the architecture build-out to the originally envisioned design.
 
 ---
 
@@ -144,10 +144,12 @@ All 7 product-surface pages compile and render with zero console/build errors. T
 
 ## 4. What's still genuinely not done
 
+*(Superseded in part by §7 — object storage and RBAC below were fixed in the second architecture pass. Kept here for history.)*
+
 - **No deployment yet** — everything has been run locally against the real Supabase database, not from a hosted URL.
-- **`ai/requirements.txt`/`OBJECT_STORAGE_URL`/`GEMINI_API_KEY`** remain unused in code — either wire them up or drop them from the env template.
-- No migrations tool (Alembic) — schema is managed by `create_all()`, fine for a demo, not production-grade.
+- No migrations tool (Alembic) — schema is managed by `create_all()` plus a couple of explicit `ALTER TABLE ... IF NOT EXISTS` statements, fine for a demo, not production-grade.
 - No demo video or `docs/screenshots/` yet.
+- **`GEMINI_API_KEY`** remains unused in code — only OpenAI (embeddings, Whisper, GPT-4o-mini) and a local CLIP model are actually called.
 
 ## 5. A security note, unrelated to functionality
 
@@ -245,3 +247,73 @@ Two real bugs were caught and fixed while writing these: the frontend's `.env.lo
 Re-running `pytest` a second time against the same persistent Supabase database (not a disposable one — see `tests/conftest.py`) surfaced two tests that assumed a clean database (`test_register_asset_creates_job`, `test_duplicate_asset_registration_is_flagged` — both used a fixed `owner` value, which the second run correctly flagged as an already-registered duplicate). Both now generate a unique `owner` per run via `uuid.uuid4()`, so the suite passes on repeated runs against the same database — confirmed by running it twice in a row.
 
 **Final result of this pass:** 13/13 pytest tests pass (twice in a row), 10/10 Playwright browser tests pass, all 6 modalities process end to end with real system tools, and every dashboard number reflects a real backend field.
+
+---
+
+## 7. Third pass: building the originally envisioned architecture, not the simplified one
+
+§6 made the platform work. This pass closes the gap between "works" and "matches the product blueprint's actual ambition" — agentic orchestration, real visual embeddings (not just OCR text), the full 9-stage lifecycle, RBAC, an audit log, an object-storage abstraction — and rebuilds the frontend as a real product UI rather than an unstyled form shell.
+
+### 7.1 Agentic orchestration — a real multi-agent pipeline, not one LLM call
+
+The blueprint (doc §7.5) describes an "asset profiler, retrieval planner, evidence ranker, synthesis writer, recommendation reviewer, and quality validator." What existed after §6 was a single `retrieve()` → `synthesize()` call chain. Now:
+
+- **`ai/agents/retrieval_planner.py`** — a real GPT-4o-mini call that decides the search strategy *before* anything is searched: how many segments to retrieve, and a cleaned/expanded concept phrase to search for. Fails open to sane defaults if the call errors, so the pipeline never hard-fails on a planning hiccup.
+- **`ai/agents/evidence_ranker.py`** — re-ranks retrieval's raw output for genuine cross-modal diversity (one best segment per modality first) and demotes near-duplicate text (e.g. the same sentence embedded under two separate test registrations), rather than just similarity-sorting.
+- **`ai/agents/quality_validator.py`** — the live gate that makes groundedness enforcement real. `ai/evaluation/evaluate.py::score_groundedness()` already existed but was only ever called from tests. Now it runs on every synthesis: any citation that doesn't map to retrieved evidence is stripped, and confidence is capped at 0.3 with an explicit note, *before* an insight ever reaches a reviewer.
+
+Verified live — a real planner call for "Why are learners struggling with the backpropagation concept?" returned:
+```
+search_terms: "learners struggling backpropagation concept"
+top_k: 10
+reasoning: "The question is broad enough to warrant a wider search for various challenges learners face with backpropagation."
+```
+`/api/query`'s response now includes this `agent_plan` object; the frontend's Query Workspace renders it as a visible "Retrieval Planner agent" card, and the synthesized answer as a "Synthesis Writer agent" card — the agent pipeline is transparent to the end user, not just internal plumbing.
+
+### 7.2 Real visual embeddings — CLIP, not just OCR text
+
+The blueprint calls for "CLIP-style image embeddings" (doc §6.2); what existed reduced every image to OCR'd text and embedded *that*, explicitly flagged in the code as a v1 simplification. Now `ai/embeddings/clip_embed.py` runs a real local CLIP ViT-B/32 model (via `sentence-transformers`, no API key, no cloud dependency) to embed the actual pixels of an image, and embeds queries with CLIP's own text encoder into the same space. `Segment.image_embedding` (`Vector(512)`) stores it; `ai/retrieval/retriever.py` now runs the text-meaning search and the visual-meaning search as two independent channels and merges them.
+
+This surfaced and fixed a real bug: the two channels' similarity scores aren't on a comparable scale, so an early version capped the merged union to `top_k` *before* ranking — which silently starved the (typically lower-scoring) visual channel whenever text results happened to dominate. Fixed by letting each channel keep its full candidate set through the merge, and applying the `top_k` cutoff only after `evidence_ranker` has weighed cross-modal diversity.
+
+Verified live: a query about "a diagram showing a mathematical formula about derivatives" — wording chosen to have no exact OCR overlap — retrieved the actual slide image via `match_type: "visual"`, similarity 0.25, genuinely found by what the image *depicts*, not by words printed on it. The Evidence Panel in the UI shows a "👁️ Visual match" badge on results found this way, distinct from "🔤 Text match."
+
+### 7.3 The full 9-stage lifecycle, tracked at the level that's actually true
+
+`JobStage` now has all 9 values from doc §4 (`uploaded → preprocessed → embedded → indexed → searchable → retrieved → synthesized → reviewed → archived`, plus `failed`) instead of 5. `searchable` advances automatically right after `indexed`. `retrieved` / `synthesized` / `reviewed` advance only for the *specific job* whose segments actually participated in a live query, synthesis, or reviewed insight — not "whichever job is newest for this asset," which an early version used and which silently advanced the wrong row whenever an asset had more than one job on record (e.g. a re-processing run). Fixed by adding `Segment.job_id` (the job that actually created each segment) and keying lifecycle advancement off that. `archived` is a manual action via the new `POST /api/processing-jobs/{id}/archive`.
+
+Verified live, one job, start to finish:
+```
+POST /api/processing-jobs        -> stage: searchable
+POST /api/query (matching text)  -> stage: retrieved
+POST /api/synthesize (cites it)  -> stage: synthesized
+POST /api/review-feedback        -> stage: reviewed
+POST /api/processing-jobs/{id}/archive -> stage: archived
+```
+The Processing Monitor page renders this as a real progress bar across all 9 stages, not a status string.
+
+### 7.4 RBAC — roles that actually gate endpoints
+
+`backend/app/auth/dependencies.py` now has a `ROLE_PERMISSIONS` map (`admin` = everything; `content-team` = asset/processing writes; `educator` = query + read insights; `reviewer` = query + read + review writes; `analyst` = metrics + audit reads) and a `require_role_permission()` FastAPI dependency applied to every mutating route. Verified live: an `educator`-scoped token gets a genuine `403` from `POST /api/review-feedback` and `POST /api/assets` (permissions it doesn't have) while `POST /api/query` (a permission it does have) succeeds — this isn't a cosmetic role label, it's enforced.
+
+### 7.5 Audit log — every mutating action, who did it, when
+
+A new `AuditLog` table plus `audit_service.log_action()`, called from every mutating route (asset registration, processing runs, archiving, queries, synthesis, review decisions, embedding refreshes). `GET /api/audit-log` (gated by `audit:read`) returns the real trail. The frontend has a new **Audit Log** page rendering it as a governance-ready table — action, actor, resource, relative time.
+
+### 7.6 Object storage — a real abstraction, honestly scoped
+
+`backend/app/services/storage_service.py` defines a `StorageBackend` interface with two implementations: `LocalFilesystemStorage` (files under `data/object_store/`, addressed as `local://<key>`) and `S3CompatibleStorage` (real S3/Supabase-Storage-compatible, via `boto3`). `get_storage_backend()` picks S3 automatically once `OBJECT_STORAGE_URL`/`OBJECT_STORAGE_KEY` are configured — **neither is configured in this environment**, so `LocalFilesystemStorage` is what's actually live here. This is stated plainly rather than implied: the architectural seam is real and tested, but no cloud object storage was actually exercised in this pass, because no credentials exist for it.
+
+### 7.7 The frontend — rebuilt as a real product, not a form shell
+
+Every page was rebuilt using the `senior-frontend` skill's component patterns: a persistent sidebar (grouped by Ingestion / Intelligence / Governance) replacing the flat top navbar, a small shared UI kit (`components/ui/`: Button, Badge, Card, Field, StatTile, PageHeader, StageProgress, Alert), an Inter typeface via `next/font`, and a deliberate indigo/warm-neutral color system (`tailwind.config.js`) rather than default Tailwind blues. New: a live overview dashboard on the home page, a 9-stage `StageProgress` bar on Processing Monitor, an Audit Log table, and agent-transparency cards (Retrieval Planner, Synthesis Writer) on the Query Workspace showing the real reasoning behind each answer.
+
+`npm run build` produces a clean production build (all 8 routes statically generated, ~90KB first-load JS per route). Verified with real browser screenshots against live data (not mocked): the dashboard renders real pipeline-health bars pulled from `/api/metrics`, the audit log renders real rows from this session's own actions, and a full click-through of the Query Workspace shows the planner's actual reasoning text, the synthesis confidence bar, and evidence cards with real modality/match-type badges.
+
+### 7.8 Verification: two real regressions caught and fixed while testing this pass
+
+1. **Retrieval channel starvation** (§7.2) — the text/visual merge order bug, caught by directly testing a visual-leaning query and noticing the image result never appeared even though it existed with a valid embedding.
+2. **Lifecycle mis-attribution** (§7.3) — the "latest job for asset" bug, caught by checking `pipeline_health` after a query and noticing a stage transition landed on the wrong (unrelated, never-processed) job row for an asset with more than one job on record.
+3. **Test-suite tie-break fragility** — `tests/retrieval_tests/test_query.py` used a fixed magic-constant embedding (`[0.001]*1536`) that, after enough repeated runs against this session's shared, persistent database, collided in exact ties with dozens of prior runs' leftover rows, so Postgres's arbitrary tie-break sometimes excluded the row the test had just inserted from the `top_k`-limited result. Fixed by generating a unique random vector per test invocation instead of a shared constant.
+
+**Final result of this pass:** 15/15 pytest tests pass, 11/11 Playwright browser tests pass (including new coverage for the Audit Log page and the agent-pipeline UI), a clean `npm run build`, and every one of the four architecture gaps named at the start of this pass (agentic orchestration, visual embeddings, full lifecycle + governance, object storage) is now real and independently verified — with the one honest caveat that object storage runs on its local-filesystem implementation, not a cloud backend, because no cloud credentials exist in this environment.

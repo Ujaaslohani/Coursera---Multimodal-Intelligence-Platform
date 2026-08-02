@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.auth.dependencies import get_current_user, CurrentUser
+from app.auth.dependencies import CurrentUser, require_role_permission
 from app.services.synthesis_service import get_insight
 
 router = APIRouter()
@@ -22,7 +22,7 @@ class InsightResponse(BaseModel):
 def get_insight_endpoint(
     insight_id: str,
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_role_permission("insights:read")),
 ):
     """Retrieve generated output, citations, and review status."""
     insight = get_insight(db, insight_id)

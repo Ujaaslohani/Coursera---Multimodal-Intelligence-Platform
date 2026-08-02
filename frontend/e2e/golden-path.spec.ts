@@ -1,26 +1,20 @@
 import { test, expect } from "@playwright/test";
 
 // These tests exercise the real backend on http://localhost:8000 (real
-// Supabase Postgres+pgvector, real OpenAI embedding/synthesis calls) — per
-// this project's own testing philosophy, nothing here is mocked.
+// Supabase Postgres+pgvector, real OpenAI embedding/synthesis calls, real
+// CLIP visual embeddings) — per this project's own testing philosophy,
+// nothing here is mocked.
 
 test.describe("Home", () => {
   test("nav bar links to every product surface", async ({ page }) => {
     await page.goto("/");
-    const navLabels = [
-      "Asset Intake",
-      "Processing Monitor",
-      "Query Workspace",
-      "Analytics Dashboard",
-      "Recommendations",
-      "Operations",
-    ];
+    const navLabels = ["Asset Intake", "Processing Monitor", "Query Workspace", "Recommendations", "Analytics Dashboard", "Operations", "Audit Log"];
     for (const label of navLabels) {
       await expect(page.getByRole("navigation").getByRole("link", { name: label, exact: true })).toBeVisible();
     }
   });
 
-  test("home page cards describe each surface and link to the right route", async ({ page }) => {
+  test("overview cards describe each surface and link to the right route", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Multimodal Intelligence Platform" })).toBeVisible();
 
@@ -31,9 +25,10 @@ test.describe("Home", () => {
       ["Learning Analytics Dashboard", "/dashboard"],
       ["Recommendation Workspace", "/recommendations"],
       ["Operations Dashboard", "/operations"],
+      ["Audit Log", "/audit-log"],
     ];
     for (const [title, href] of cards) {
-      const card = page.getByRole("heading", { name: title }).locator("..");
+      const card = page.locator("main").getByRole("link", { name: new RegExp(title) });
       await expect(card).toHaveAttribute("href", href);
     }
   });
@@ -73,7 +68,7 @@ test.describe("Asset Intake", () => {
 });
 
 test.describe("Unified Query Workspace", () => {
-  test("asks a cross-modal question and renders a cited, grounded answer", async ({ page }) => {
+  test("asks a cross-modal question and renders the agent pipeline's cited, grounded answer", async ({ page }) => {
     await page.goto("/query");
     await expect(page.getByRole("heading", { name: "Unified Query Workspace" })).toBeVisible();
 
@@ -82,12 +77,14 @@ test.describe("Unified Query Workspace", () => {
       .fill("Why are learners struggling with the backpropagation concept?");
     await page.getByRole("button", { name: /Ask/ }).click();
 
-    // Real retrieval + real GPT-4o-mini synthesis — give it real time.
-    await expect(page.getByText(/Confidence:/)).toBeVisible({ timeout: 30000 });
+    // Real planner + retrieval + ranker + synthesis + validator — give it real time.
+    await expect(page.getByText("Retrieval Planner agent")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Synthesis Writer agent")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText("Confidence")).toBeVisible();
 
-    await expect(page.getByRole("heading", { name: "Evidence" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Evidence retrieved" })).toBeVisible();
     // At least one retrieved evidence segment should render with its modality tag.
-    await expect(page.getByText(/transcript|discussion|quiz|slide|video|image/i).first()).toBeVisible();
+    await expect(page.getByText(/Transcript|Discussion|Quiz|Slide|Video|Image/).first()).toBeVisible();
   });
 });
 
@@ -116,12 +113,12 @@ test.describe("Recommendation Review Workspace", () => {
     await page.getByPlaceholder("insight id").fill(insight_id);
     await page.getByRole("button", { name: "Load" }).click();
 
-    await expect(page.getByText(/Status: pending_review/)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Pending review")).toBeVisible({ timeout: 10000 });
 
-    await page.getByPlaceholder("reviewer notes").fill("Verified by Playwright e2e run.");
+    await page.getByPlaceholder("Why this decision?").fill("Verified by Playwright e2e run.");
     await page.getByRole("button", { name: "Accept" }).click();
 
-    await expect(page.getByText(/Status: accept/)).toBeVisible();
+    await expect(page.getByText("Accepted")).toBeVisible();
   });
 });
 
@@ -159,9 +156,24 @@ test.describe("Operations Dashboard", () => {
   });
 });
 
+test.describe("Audit Log", () => {
+  test("renders a governance-ready table of real actions", async ({ page }) => {
+    await page.goto("/audit-log");
+    await expect(page.getByRole("heading", { name: "Audit Log" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Action" })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("columnheader", { name: "Actor" })).toBeVisible();
+    // The Playwright run itself, and every other test in this suite, writes
+    // audit entries — so at least one real data row (plus the header row)
+    // is guaranteed to exist by the time the table has actually loaded.
+    await expect(async () => {
+      expect(await page.getByRole("row").count()).toBeGreaterThan(1);
+    }).toPass({ timeout: 10000 });
+  });
+});
+
 test.describe("Processing Monitor", () => {
   test("renders without console errors", async ({ page }) => {
     await page.goto("/processing");
-    await expect(page.getByRole("heading")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Processing Monitor" })).toBeVisible();
   });
 });

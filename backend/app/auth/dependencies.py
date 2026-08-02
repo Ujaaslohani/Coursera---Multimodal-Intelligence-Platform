@@ -1,9 +1,21 @@
 import os
 
 import jwt
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 
 JWT_ALGORITHM = "HS256"
+
+# Role -> Permission map, per doc §5.4 'Security, Logging, and Observability':
+# 'The platform must enforce role-based access control before retrieval and
+# before LLM synthesis.' `admin` holds every permission; every other role is
+# scoped to the part of the workflow it actually owns.
+ROLE_PERMISSIONS: dict[str, set[str]] = {
+    "admin": {"*"},
+    "content-team": {"assets:write", "processing:write"},
+    "educator": {"query:run", "insights:read"},
+    "reviewer": {"query:run", "insights:read", "review:write"},
+    "analyst": {"metrics:read", "audit:read"},
+}
 
 
 class CurrentUser:
@@ -55,3 +67,28 @@ def require_permission(user: CurrentUser, source_id: str) -> None:
     if "*" in user.permitted_sources or source_id in user.permitted_sources:
         return
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Not permitted to access source {source_id}")
+
+
+def user_permissions(user: CurrentUser) -> set[str]:
+    perms: set[str] = set()
+    for role in user.roles:
+        perms |= ROLE_PERMISSIONS.get(role, set())
+    return perms
+
+
+def require_role_permission(permission: str):
+    """FastAPI dependency factory — e.g. Depends(require_role_permission("review:write")).
+    RBAC gate on top of get_current_user: authentication proves *who* the
+    caller is, this proves they're *allowed* to do this particular action.
+    """
+
+    def _dependency(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        perms = user_permissions(user)
+        if "*" in perms or permission in perms:
+            return user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"role(s) {user.roles} lack permission '{permission}'",
+        )
+
+    return _dependency

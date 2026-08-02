@@ -68,6 +68,30 @@ def test_insight_not_found_returns_404(requires_db, auth_headers):
     assert response.status_code == 404
 
 
+def test_rbac_rejects_out_of_scope_role(requires_db, educator_headers):
+    """An `educator` token (permissions: query:run, insights:read) must be
+    rejected from review-feedback (requires review:write) and from asset
+    registration (requires assets:write) — RBAC per doc §5.4."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+
+    review_response = client.post(
+        "/api/review-feedback",
+        json={"insight_id": "00000000-0000-0000-0000-000000000000", "decision": "accept"},
+        headers=educator_headers,
+    )
+    assert review_response.status_code == 403
+
+    asset_response = client.post(
+        "/api/assets",
+        json={"modality": "transcript", "owner": "rbac-test@coursera.org", "storage_url": "x"},
+        headers=educator_headers,
+    )
+    assert asset_response.status_code == 403
+
+
 def test_duplicate_asset_registration_is_flagged(requires_db, auth_headers):
     import uuid
 

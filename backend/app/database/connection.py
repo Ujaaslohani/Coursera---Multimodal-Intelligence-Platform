@@ -20,6 +20,20 @@ def ensure_vector_extension() -> None:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
 
 
+def ensure_new_columns() -> None:
+    """Base.metadata.create_all() only creates MISSING tables — it never
+    alters an existing one. `segments` already existed in this database
+    before `image_embedding` (CLIP, 512-dim) was added to the model, so that
+    column needs an explicit, idempotent ALTER TABLE. Call this AFTER
+    create_all() — Postgres's `ADD COLUMN IF NOT EXISTS` is then safe to run
+    on every startup against both this pre-existing database (where the
+    column is genuinely missing) and a fresh one (where create_all already
+    created it, making this a no-op)."""
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE segments ADD COLUMN IF NOT EXISTS image_embedding vector(512)"))
+        conn.execute(text("ALTER TABLE segments ADD COLUMN IF NOT EXISTS job_id uuid"))
+
+
 def get_db():
     db = SessionLocal()
     try:

@@ -220,8 +220,8 @@ footer{ margin-top:80px; padding:30px 24px 56px; border-top:1px solid var(--line
     <p class="subtitle">How the Multimodal Intelligence Platform turns video, slides, quizzes, and discussion threads into a single, evidence-backed recommendation — explained end to end, with a real run of the system followed all the way through.</p>
     <div class="hero-meta">
       <div><b>✓ Verified</b> — every example below is a real run of the actual system, not a mockup</div>
+      <div>Now with real AI agents, real image search, and full governance — not a simplified demo</div>
       <div>Reader — no prior technical knowledge assumed</div>
-      <div>Scope — full pipeline, upload to reviewed insight</div>
     </div>
   </div>
 </header>
@@ -280,6 +280,31 @@ footer{ margin-top:80px; padding:30px 24px 56px; border-top:1px solid var(--line
     <p><b>Module:</b> "Backpropagation" — a Neural Networks course, Week covering how neural networks learn from error.</p>
     <p><b>Signal:</b> Quiz scores on the "chain rule" question are unusually low, and the discussion forum has learners saying they're lost. Nobody has connected these facts to the exact moment in the lecture video yet — that's what the platform is for.</p>
     <p><b>This isn't a hypothetical.</b> Every screenshot-style example below — the video transcript, the slide text, the discussion post, the synthesized answer — is copied from an actual run of the real system, including a real video the platform actually watched and a real slide image it actually read.</p>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">Not One AI Call — A Team of Them</div>
+  <h2 class="section-title">Four specialist AI agents, working in sequence</h2>
+  <p class="lede">Stages 4 through 6 aren't a single question-to-answer black box. Four distinct AI "agents" each do one job, hand off to the next, and — critically — the last one is allowed to overrule the others if the evidence doesn't back up the claim.</p>
+
+  <div class="flow-frame">
+    <div class="flow">
+      <div class="flow-step accent"><div class="icon">🧭</div><div class="title">Retrieval Planner</div><div class="desc">Decides how to search, before anything is searched</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="icon">📊</div><div class="title">Evidence Ranker</div><div class="desc">Reorders results so every modality gets a fair say</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="icon">✍️</div><div class="title">Synthesis Writer</div><div class="desc">Drafts the grounded, cited answer</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="icon">🛡️</div><div class="title">Quality Validator</div><div class="desc">Strips any claim the evidence doesn't actually support</div></div>
+    </div>
+    <p class="flow-caption">This is a real, visible run — the planner's own reasoning shown below is copied verbatim from the actual system.</p>
+  </div>
+
+  <div class="example">
+    <div class="example-head">Real planner output for our module</div>
+    <p><b>Searching for:</b> <span class="mono">"learners struggling backpropagation concept"</span> &nbsp;·&nbsp; <b>Retrieving:</b> up to 7 segments</p>
+    <p><b>Its own stated reasoning:</b> "The question is moderately specific, necessitating a focused search on learners' difficulties with backpropagation."</p>
   </div>
 </section>
 
@@ -402,7 +427,7 @@ footer{ margin-top:80px; padding:30px 24px 56px; border-top:1px solid var(--line
   <div class="stage-num">5</div>
   <div class="stage-label">Stage 5 of 8</div>
   <h3 class="stage-title">Cross-Modal Retrieval</h3>
-  <p class="stage-lede">The system ranks every candidate segment by relevance and permission eligibility — and it shows its work. Restricted evidence is labeled and excluded, never silently dropped or silently included.</p>
+  <p class="stage-lede">The system searches <b style="color:var(--ink)">two completely different ways at once</b>: by the meaning of words (works for transcripts, quizzes, discussion posts, and any text found on a slide), and by what an image actually <em>looks like</em> — using a real computer-vision model, not just text it can read off the picture. Then it ranks every candidate by relevance and permission eligibility, showing its work the whole way.</p>
 
   <div class="flow-frame">
     <div class="flow">
@@ -431,6 +456,14 @@ footer{ margin-top:80px; padding:30px 24px 56px; border-top:1px solid var(--line
     </table>
   </div>
   <p class="flow-caption">This is a real result — the platform genuinely watched the video, genuinely read the slide image, and found all five as relevant to one question, on its own.</p>
+
+  <div class="example">
+    <div class="example-head">Proof it's genuinely visual, not just reading text</div>
+    <p>A question worded to have <b>no matching words</b> on any slide — <span class="mono">"a diagram showing a mathematical formula about derivatives"</span> — still found the chain-rule slide image, tagged as a <b>visual match</b> (not a text match), just from what the image shows.</p>
+    <div class="chips">
+      <span class="chip">👁️ visual match · 25% similarity · Slide 4: Backpropagation diagram</span>
+    </div>
+  </div>
 </div>
 
 <!-- STAGE 6 -->
@@ -517,6 +550,37 @@ footer{ margin-top:80px; padding:30px 24px 56px; border-top:1px solid var(--line
     <p>The dashboard now shows real counts pulled live from the system: <b>28 assets</b> registered, <b>69 segments</b> indexed and searchable, and a running tally of how many insights are pending review versus already approved — a genuine operational view, not a mockup.</p>
   </div>
 </div>
+
+<section>
+  <div class="kicker">Trust &amp; Governance</div>
+  <h2 class="section-title">Who's allowed to do what — and a permanent record of who did</h2>
+  <p class="lede">A governed platform isn't just accurate — it's accountable. Two systems make that real, not just a policy document.</p>
+
+  <div class="flow-frame">
+    <div class="flow">
+      <div class="flow-step accent"><div class="icon">🔐</div><div class="title">Role-based access</div><div class="desc">Each person can only do what their role allows</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="icon">🚦</div><div class="title">Every action is checked</div><div class="desc">Before it runs — not logged after the fact as an afterthought</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="icon">📜</div><div class="title">Audit log</div><div class="desc">A permanent, searchable record of who did what, and when</div></div>
+    </div>
+    <div class="outcomes">
+      <div class="outcome good"><div class="oc-head">✅ Educator asks a question</div><div class="oc-body">Allowed — querying is part of an educator's role.</div></div>
+      <div class="outcome warn"><div class="oc-head">🚫 Educator tries to approve a recommendation</div><div class="oc-body">Blocked — that action belongs to the Reviewer role only.</div></div>
+    </div>
+  </div>
+
+  <div class="example">
+    <div class="example-head">Real audit log entries from this system</div>
+    <div class="chips">
+      <span class="chip"><b>insight.review</b> · admin-test · accepted insight · 16 minutes ago</span>
+    </div>
+    <div class="chips">
+      <span class="chip"><b>processing_job.archive</b> · admin-test · retired a completed job · 16 minutes ago</span>
+    </div>
+    <p style="margin-top:12px;">Every asset also carries a visible <b>progress bar across all 9 lifecycle stages</b> — uploaded, preprocessed, embedded, indexed, searchable, retrieved, synthesized, reviewed, archived — so operations teams can see exactly how far each piece of evidence has traveled through the system, not just whether it "finished."</p>
+  </div>
+</section>
 
 <section>
   <div class="kicker">Putting It All Together</div>

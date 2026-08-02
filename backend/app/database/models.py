@@ -39,11 +39,41 @@ class ModalityType(str, enum.Enum):
 
 
 class JobStage(str, enum.Enum):
+    """Full lifecycle per doc §4 (Engineering Lead): 'uploaded, preprocessed,
+    embedded, indexed, searchable, retrieved, synthesized, reviewed, and
+    archived.' `uploaded`..`searchable` progress during ingestion; `retrieved`,
+    `synthesized`, and `reviewed` progress as THIS asset's own segments are
+    used by a live query (see app.services.lifecycle_service) — an asset
+    only reaches `reviewed` once evidence drawn from it was actually part of
+    a reviewed insight, not merely indexed. `archived` is a manual, explicit
+    action (see POST /api/processing-jobs/{id}/archive).
+    """
     uploaded = "uploaded"
     preprocessed = "preprocessed"
     embedded = "embedded"
     indexed = "indexed"
+    searchable = "searchable"
+    retrieved = "retrieved"
+    synthesized = "synthesized"
+    reviewed = "reviewed"
+    archived = "archived"
     failed = "failed"
+
+
+# Forward progression order for lifecycle_service.advance_if_later — index
+# position is the "how far along" ranking; `failed` is a terminal side-branch,
+# not part of this ordering.
+JOB_STAGE_PROGRESSION = [
+    JobStage.uploaded,
+    JobStage.preprocessed,
+    JobStage.embedded,
+    JobStage.indexed,
+    JobStage.searchable,
+    JobStage.retrieved,
+    JobStage.synthesized,
+    JobStage.reviewed,
+    JobStage.archived,
+]
 
 
 class Asset(Base):
@@ -75,11 +105,13 @@ class Segment(Base):
 
     id = Column(Uuid(as_uuid=False), primary_key=True, default=_uuid)
     asset_id = Column(Uuid(as_uuid=False), ForeignKey("assets.id"), nullable=False)
+    job_id = Column(Uuid(as_uuid=False), ForeignKey("processing_jobs.id"), nullable=True)
     modality = Column(SAEnum(ModalityType, name="modalitytype"), nullable=False)
     text_content = Column(Text, nullable=True)
     timestamp_start = Column(Float, nullable=True)
     timestamp_end = Column(Float, nullable=True)
     embedding = Column(Vector(1536), nullable=True)  # matches ai/embeddings/embed.py EMBEDDING_MODEL dims
+    image_embedding = Column(Vector(512), nullable=True)  # CLIP ViT-B/32 — see ai/embeddings/clip_embed.py
     segment_metadata = Column(JSON, nullable=True, default=dict)
     created_at = Column(DateTime, default=_now)
 
@@ -113,4 +145,21 @@ class ReviewFeedback(Base):
     reviewer_id = Column(Text, nullable=False)
     decision = Column(Text, nullable=False)  # accept | edit | reject | escalate
     notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=_now)
+
+
+class AuditLog(Base):
+    """Every mutating action and every access to sensitive data, per doc
+    §5.4 'Security, Logging, and Observability': 'Every ingestion job,
+    embedding job, query, retrieval call, model call, and export event must
+    be logged' and §5.4 governance: 'audit-ready records.'
+    """
+    __tablename__ = "audit_log"
+
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=_uuid)
+    actor = Column(Text, nullable=False)
+    action = Column(Text, nullable=False)
+    resource_type = Column(Text, nullable=True)
+    resource_id = Column(Text, nullable=True)
+    details = Column(JSON, nullable=True, default=dict)
     created_at = Column(DateTime, default=_now)

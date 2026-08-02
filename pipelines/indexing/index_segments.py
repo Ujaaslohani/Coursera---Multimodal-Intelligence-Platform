@@ -27,6 +27,7 @@ def index_pipeline_output(db: Session, job_id: str, pipeline_output: dict,
     for seg in normalized:
         record = Segment(
             asset_id=seg.asset_id,
+            job_id=job_id,
             modality=seg.modality,
             text_content=seg.text_content,
             timestamp_start=seg.timestamp_start,

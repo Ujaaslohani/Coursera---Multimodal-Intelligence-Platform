@@ -46,13 +46,29 @@ export const generateEmbeddings = (segmentIds: string[]) =>
     body: JSON.stringify({ segment_ids: segmentIds }),
   });
 
+export type EvidenceItem = {
+  segment_id: string;
+  asset_id: string;
+  modality: string;
+  text_content: string;
+  timestamp_start: number | null;
+  timestamp_end: number | null;
+  similarity: number;
+  permitted: boolean;
+  match_type: "text" | "visual";
+};
+
 export const runQuery = (questionText: string, topK = 10) =>
-  request<{ query_id: string; retrieved_evidence: Record<string, unknown>[] }>("/api/query", {
+  request<{
+    query_id: string;
+    retrieved_evidence: EvidenceItem[];
+    agent_plan: { search_terms: string; top_k: number; reasoning: string };
+  }>("/api/query", {
     method: "POST",
     body: JSON.stringify({ question_text: questionText, top_k: topK }),
   });
 
-export const synthesize = (queryId: string, retrievedEvidence: Record<string, unknown>[]) =>
+export const synthesize = (queryId: string, retrievedEvidence: EvidenceItem[]) =>
   request<{
     insight_id: string;
     answer_text: string;
@@ -63,6 +79,24 @@ export const synthesize = (queryId: string, retrievedEvidence: Record<string, un
     method: "POST",
     body: JSON.stringify({ query_id: queryId, retrieved_evidence: retrievedEvidence }),
   });
+
+export const archiveProcessingJob = (jobId: string) =>
+  request<{ job_id: string; asset_id: string; stage: string; error: string | null }>(
+    `/api/processing-jobs/${jobId}/archive`,
+    { method: "POST" }
+  );
+
+export type AuditLogEntry = {
+  id: string;
+  actor: string;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
+};
+
+export const getAuditLog = (limit = 50) => request<AuditLogEntry[]>(`/api/audit-log?limit=${limit}`);
 
 export const getInsight = (insightId: string) =>
   request<{

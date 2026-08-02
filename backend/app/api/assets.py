@@ -3,8 +3,9 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.auth.dependencies import get_current_user, CurrentUser
+from app.auth.dependencies import CurrentUser, require_role_permission
 from app.services.asset_service import register_asset
+from app.services.audit_service import log_action
 
 router = APIRouter()
 
@@ -29,11 +30,12 @@ class AssetCreateResponse(BaseModel):
 def create_asset(
     payload: AssetCreateRequest,
     db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
+    user: CurrentUser = Depends(require_role_permission("assets:write")),
 ):
     """Register a new video, image, slide, transcript, quiz, or discussion asset.
     Re-registering the same owner+modality+storage_url returns the existing
-    asset instead of creating a duplicate (doc §5.4 duplicate-asset detection)."""
+    asset instead of creating a duplicate (doc §5.4 duplicate-asset detection).
+    Requires the `assets:write` permission (content-team/admin roles)."""
     asset, job_id, is_duplicate = register_asset(
         db,
         modality=payload.modality,
@@ -43,6 +45,8 @@ def create_asset(
         storage_url=payload.storage_url,
         permission_scope=payload.permission_scope,
     )
+    log_action(db, actor=user.user_id, action="asset.register", resource_type="asset", resource_id=asset.id,
+               details={"modality": payload.modality, "owner": payload.owner, "duplicate": is_duplicate})
     return AssetCreateResponse(
         asset_id=asset.id,
         job_id=job_id,

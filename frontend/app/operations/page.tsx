@@ -2,39 +2,47 @@
 
 import { useEffect, useState } from "react";
 import { getMetrics } from "@/lib/api";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatTile } from "@/components/ui/StatTile";
+import { Alert } from "@/components/ui/Alert";
+
+type Metrics = {
+  total_jobs?: number;
+  failed_jobs?: number;
+  total_insights?: number;
+  pending_review?: number;
+};
 
 export default function OperationsPage() {
-  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getMetrics()
-      .then(setMetrics)
+      .then((m) => setMetrics(m as Metrics))
       .catch((err) => setError((err as Error).message));
   }, []);
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Operations & Governance Dashboard</h1>
-      <div className="grid grid-cols-2 gap-4 max-w-lg">
-        <div className="border rounded p-3">
-          <p className="text-xs text-gray-500">Total jobs</p>
-          <p className="text-xl font-bold">{String(metrics?.total_jobs ?? "-")}</p>
-        </div>
-        <div className="border rounded p-3">
-          <p className="text-xs text-gray-500">Failed jobs</p>
-          <p className="text-xl font-bold">{String(metrics?.failed_jobs ?? "-")}</p>
-        </div>
-        <div className="border rounded p-3">
-          <p className="text-xs text-gray-500">Total insights</p>
-          <p className="text-xl font-bold">{String(metrics?.total_insights ?? "-")}</p>
-        </div>
-        <div className="border rounded p-3">
-          <p className="text-xs text-gray-500">Pending review</p>
-          <p className="text-xl font-bold">{String(metrics?.pending_review ?? "-")}</p>
-        </div>
+      <PageHeader
+        eyebrow="Governance"
+        title="Operations & Governance Dashboard"
+        description="Pipeline throughput, failure rate, and review backlog — the health signals an ops team watches day to day."
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Total jobs" value={metrics?.total_jobs ?? "-"} />
+        <StatTile label="Failed jobs" value={metrics?.failed_jobs ?? "-"} tone={metrics?.failed_jobs ? "danger" : "neutral"} />
+        <StatTile label="Total insights" value={metrics?.total_insights ?? "-"} />
+        <StatTile label="Pending review" value={metrics?.pending_review ?? "-"} tone={metrics?.pending_review ? "warning" : "neutral"} />
       </div>
-      {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
+
+      {error && (
+        <div className="mt-4">
+          <Alert tone="danger">{error}</Alert>
+        </div>
+      )}
     </div>
   );
 }

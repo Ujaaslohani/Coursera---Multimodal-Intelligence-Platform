@@ -19,13 +19,7 @@ import time
 import pytest
 
 
-@pytest.fixture
-def auth_headers():
-    """A real signed HS256 JWT, not a placeholder string — app.auth.dependencies
-    verifies the signature against JWT_SECRET, so an arbitrary bearer value
-    (e.g. the literal "dev-token") is correctly rejected with 401 rather than
-    accepted. See backend/scripts/mint_dev_token.py for the equivalent CLI.
-    """
+def _mint_token(roles: list[str]) -> dict:
     import jwt
 
     secret = os.environ.get("JWT_SECRET")
@@ -34,11 +28,33 @@ def auth_headers():
 
     now = int(time.time())
     token = jwt.encode(
-        {"sub": "test-user", "roles": ["educator"], "permitted_sources": ["*"], "iat": now, "exp": now + 3600},
+        {"sub": "test-user", "roles": roles, "permitted_sources": ["*"], "iat": now, "exp": now + 3600},
         secret,
         algorithm="HS256",
     )
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def auth_headers():
+    """A real signed HS256 JWT, not a placeholder string — app.auth.dependencies
+    verifies the signature against JWT_SECRET, so an arbitrary bearer value
+    (e.g. the literal "dev-token") is correctly rejected with 401 rather than
+    accepted. See backend/scripts/mint_dev_token.py for the equivalent CLI.
+    `admin` so tests exercising many different endpoints (each gated by a
+    different RBAC permission — see auth/dependencies.py::ROLE_PERMISSIONS)
+    aren't blocked by role scoping; RBAC enforcement itself is covered by
+    the dedicated `educator_headers` fixture below.
+    """
+    return _mint_token(["admin"])
+
+
+@pytest.fixture
+def educator_headers():
+    """A real token scoped to the `educator` role only — for tests that
+    verify RBAC actually rejects an out-of-scope action (e.g. an educator
+    cannot submit review-feedback, which requires `review:write`)."""
+    return _mint_token(["educator"])
 
 
 @pytest.fixture

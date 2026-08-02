@@ -1,0 +1,102 @@
+[
+  {
+    "text": "Hi, welcome to the video.",
+    "start": 0.0,
+    "end": 9.36
+  },
+  {
+    "text": "So this is the fourth video in a Transformers",
+    "start": 3.0,
+    "end": 11.56
+  },
+  {
+    "text": "from Scratch mini series.",
+    "start": 9.36,
+    "end": 15.84
+  },
+  {
+    "text": "So if you haven't been following along,",
+    "start": 11.56,
+    "end": 18.48
+  },
+  {
+    "text": "we've essentially covered what you can see on the screen.",
+    "start": 15.84,
+    "end": 20.6
+  },
+  {
+    "text": "So we got some data.",
+    "start": 18.48,
+    "end": 23.72
+  },
+  {
+    "text": "We built a tokenizer with it.",
+    "start": 20.6,
+    "end": 25.76
+  },
+  {
+    "text": "And then we've set up our input pipeline",
+    "start": 23.72,
+    "end": 28.48
+  },
+  {
+    "text": "ready to begin actually training our model, which",
+    "start": 25.76,
+    "end": 32.36
+  },
+  {
+    "text": "is what we're going to cover in this video.",
+    "start": 28.48,
+    "end": 35.96
+  },
+  {
+    "text": "So let's move over to the code.",
+    "start": 32.36,
+    "end": 39.56
+  },
+  {
+    "text": "And we see here that we have essentially everything",
+    "start": 35.96,
+    "end": 40.480000000000004
+  },
+  {
+    "text": "we've done so far.",
+    "start": 39.56,
+    "end": 48.8
+  },
+  {
+    "text": "So we've built our input data, our input pipeline.",
+    "start": 40.480000000000004,
+    "end": 51.519999999999996
+  },
+  {
+    "text": "And we're now at a point where we have a data loader,",
+    "start": 48.8,
+    "end": 54.040000000000006
+  },
+  {
+    "text": "PyTorch data loader, ready.",
+    "start": 51.519999999999996,
+    "end": 56.400000000000006
+  },
+  {
+    "text": "And we can begin training a model with it.",
+    "start": 54.040000000000006,
+    "end": 61.839999999999996
+  },
+  {
+    "text": "So there are a few things to be aware of.",
+    "start": 56.4,
+    "end": 64.88
+  },
+  {
+    "text": "So I mean, first, let's just have a quick look",
+    "start": 61.839999999999996,
+    "end": 67.28
+  },
+  {
+    "text": "at the structure of our data.",
+    "start": 64.88,
+    "end": 72.36
+  }
+]

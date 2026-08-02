@@ -69,13 +69,17 @@ def test_insight_not_found_returns_404(requires_db, auth_headers):
 
 
 def test_duplicate_asset_registration_is_flagged(requires_db, auth_headers):
+    import uuid
+
     from fastapi.testclient import TestClient
     from app.main import app
 
     client = TestClient(app)
+    # Unique owner per run — see test_register_asset_creates_job for why a
+    # fixed value would only pass once against a real, persistent database.
     payload = {
         "modality": "transcript",
-        "owner": "dup-test@coursera.org",
+        "owner": f"dup-test-{uuid.uuid4()}@coursera.org",
         "storage_url": "data/sample_assets/course_neural_networks/transcript.json",
     }
 

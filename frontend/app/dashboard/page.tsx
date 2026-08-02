@@ -2,14 +2,27 @@
 
 import { useEffect, useState } from "react";
 import { getMetrics } from "@/lib/api";
+import FrictionThemeChart from "@/dashboards/FrictionThemeChart";
+
+type Metrics = {
+  pipeline_health?: Record<string, number>;
+  review_outcomes?: Record<string, number>;
+  total_assets?: number;
+  total_segments_indexed?: number;
+};
+
+const toThemes = (counts: Record<string, number> | undefined) =>
+  Object.entries(counts ?? {})
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => ({ label, count }));
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getMetrics()
-      .then(setMetrics)
+      .then((m) => setMetrics(m as Metrics))
       .catch((err) => setError((err as Error).message));
   }, []);
 
@@ -22,9 +35,35 @@ export default function DashboardPage() {
       </p>
       {error && <p className="text-sm text-red-700">{error}</p>}
       {metrics && (
-        <pre className="text-xs bg-gray-50 border rounded p-3 overflow-auto">
-          {JSON.stringify(metrics, null, 2)}
-        </pre>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="border rounded p-3">
+              <div className="text-xs text-gray-500">Total assets</div>
+              <div className="text-2xl font-semibold">{metrics.total_assets ?? 0}</div>
+            </div>
+            <div className="border rounded p-3">
+              <div className="text-xs text-gray-500">Segments indexed</div>
+              <div className="text-2xl font-semibold">{metrics.total_segments_indexed ?? 0}</div>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold mb-2">Pipeline health, by stage</h2>
+            <FrictionThemeChart themes={toThemes(metrics.pipeline_health)} />
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold mb-2">Review outcomes</h2>
+            <FrictionThemeChart themes={toThemes(metrics.review_outcomes)} />
+          </div>
+
+          <details className="text-xs">
+            <summary className="cursor-pointer text-gray-500">Raw metrics response</summary>
+            <pre className="bg-gray-50 border rounded p-3 overflow-auto mt-2">
+              {JSON.stringify(metrics, null, 2)}
+            </pre>
+          </details>
+        </div>
       )}
     </div>
   );

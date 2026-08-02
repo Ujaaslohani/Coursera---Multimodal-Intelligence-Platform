@@ -8,10 +8,19 @@ __pycache__/
 node_modules/
 .next/
 frontend/.env.local
+frontend/tsconfig.tsbuildinfo
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
 
 # Env files
 .env
 backend/.env
+
+# Generated media (frame thumbnails from video preprocessing)
+data/generated_thumbnails/
 
 # OS
 .DS_Store

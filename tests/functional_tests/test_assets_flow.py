@@ -6,16 +6,22 @@ feedback, and dashboard metrics.'
 
 
 def test_register_asset_creates_job(requires_db, auth_headers):
+    import uuid
+
     from fastapi.testclient import TestClient
     from app.main import app
 
     client = TestClient(app)
 
+    # A unique owner/storage_url pair each run, since duplicate-asset detection
+    # (asset_service.find_duplicate) is keyed on owner+modality+storage_url —
+    # against a real, persistent test database (not a disposable one, see
+    # conftest.py), a fixed value here would only pass once.
     response = client.post(
         "/api/assets",
         json={
             "modality": "transcript",
-            "owner": "test@coursera.org",
+            "owner": f"test-{uuid.uuid4()}@coursera.org",
             "topic": "Backpropagation",
             "storage_url": "data/sample_assets/course_neural_networks/transcript.json",
             "permission_scope": ["course:neural-networks-101"],

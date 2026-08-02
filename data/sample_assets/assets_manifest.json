@@ -43,5 +43,14 @@
     "concept_tags": ["neural-networks", "backpropagation"],
     "storage_url": "sample_assets/course_neural_networks/discussion.json",
     "permission_scope": ["course:neural-networks-101"]
+  },
+  {
+    "asset_id": "a6-image-backprop-diagram",
+    "modality": "image",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation", "chain-rule"],
+    "storage_url": "sample_assets/course_neural_networks/diagram_backprop.png",
+    "permission_scope": ["course:neural-networks-101"]
   }
 ]

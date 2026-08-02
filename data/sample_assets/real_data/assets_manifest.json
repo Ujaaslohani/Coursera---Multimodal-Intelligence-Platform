@@ -1,0 +1,44 @@
+[
+  {
+    "asset_id": "real-video-35Pdoyi6ZoQ",
+    "modality": "video",
+    "owner": "data-fetch-script",
+    "topic": "Training and Testing an Italian BERT - Transformers From Scratch #4",
+    "concept_tags": [
+      "nlp",
+      "transformers"
+    ],
+    "storage_url": "https://youtu.be/35Pdoyi6ZoQ",
+    "permission_scope": [
+      "demo:real-data"
+    ]
+  },
+  {
+    "asset_id": "real-transcript-35Pdoyi6ZoQ",
+    "modality": "transcript",
+    "owner": "data-fetch-script",
+    "topic": "Training and Testing an Italian BERT - Transformers From Scratch #4",
+    "concept_tags": [
+      "nlp",
+      "transformers"
+    ],
+    "storage_url": "data/sample_assets/real_data/youtube_transcript.json",
+    "permission_scope": [
+      "demo:real-data"
+    ]
+  },
+  {
+    "asset_id": "real-slides-1062",
+    "modality": "slide",
+    "owner": "data-fetch-script",
+    "topic": "Neural Hidden Markov Model for Machine Translation",
+    "concept_tags": [
+      "nlp",
+      "sequence-models"
+    ],
+    "storage_url": "data/sample_assets/real_data/sciduet_slides.json",
+    "permission_scope": [
+      "demo:real-data"
+    ]
+  }
+]

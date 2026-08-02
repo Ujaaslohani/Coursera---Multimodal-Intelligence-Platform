@@ -13,6 +13,8 @@ dependency); JSON-shaped sample assets skip straight to normalization since
 they represent already-extracted raw_units.
 """
 import json
+import os
+import shutil
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -22,9 +24,32 @@ from app.jobs.job_queue import get_job, advance_job
 from ai.preprocessing.normalize import normalize_raw_units
 from ai.embeddings.embed import embed_segment
 from pipelines.text_processing.clean import process_quiz, process_discussion_thread
-from pipelines.image_processing.extract import extract_slide_text
+from pipelines.image_processing.extract import extract_slide_text, process_image
+from pipelines.video_processing.extract import process_video
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# Fallback install locations for machines where ffmpeg/tesseract were just
+# installed but the current process's PATH predates the install (a long-lived
+# shell won't pick up a Windows user-PATH registry change without a restart).
+_FALLBACK_BINARY_DIRS = [
+    r"C:\Program Files\Tesseract-OCR",
+]
+
+
+def _ensure_binary_on_path(binary_name: str) -> bool:
+    if shutil.which(binary_name):
+        return True
+    for extra_dir in _FALLBACK_BINARY_DIRS:
+        if (Path(extra_dir) / f"{binary_name}.exe").exists():
+            os.environ["PATH"] = extra_dir + os.pathsep + os.environ.get("PATH", "")
+            return True
+    # ffmpeg ships wherever it was unzipped, not a fixed path — search common user locations
+    if binary_name == "ffmpeg":
+        for candidate in Path.home().glob("tools/**/bin/ffmpeg.exe"):
+            os.environ["PATH"] = str(candidate.parent) + os.pathsep + os.environ.get("PATH", "")
+            return True
+    return shutil.which(binary_name) is not None
 
 
 class ProcessingError(Exception):
@@ -35,15 +60,28 @@ def _load_raw_units(asset: Asset) -> list[dict]:
     source_path = REPO_ROOT / asset.storage_url
 
     if asset.modality.value == "video":
-        raise ProcessingError(
-            "Video preprocessing requires ffmpeg + Whisper API, which need a real media file "
-            "and ffmpeg installed. Not available in this environment — see pipelines/README.md."
-        )
+        if not _ensure_binary_on_path("ffmpeg"):
+            raise ProcessingError(
+                "Video preprocessing requires ffmpeg, which is not installed/on PATH in this environment."
+            )
+        if not source_path.exists():
+            raise ProcessingError(f"storage_url does not resolve to a local file: {asset.storage_url}")
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            raise ProcessingError("OPENAI_API_KEY is not configured — required for Whisper transcription.")
+        thumbnail_dir = REPO_ROOT / "data" / "generated_thumbnails" / asset.id
+        result = process_video(asset.id, str(source_path), api_key=api_key, thumbnail_dir=str(thumbnail_dir))
+        return result["raw_units"]
+
     if asset.modality.value == "image" and source_path.suffix.lower() != ".pdf":
-        raise ProcessingError(
-            "Image OCR requires tesseract, which is not installed in this environment — "
-            "see pipelines/README.md."
-        )
+        if not _ensure_binary_on_path("tesseract"):
+            raise ProcessingError(
+                "Image OCR requires tesseract, which is not installed/on PATH in this environment."
+            )
+        if not source_path.exists():
+            raise ProcessingError(f"storage_url does not resolve to a local file: {asset.storage_url}")
+        result = process_image(asset.id, str(source_path))
+        return result["raw_units"]
 
     if not source_path.exists():
         raise ProcessingError(f"storage_url does not resolve to a local file: {asset.storage_url}")

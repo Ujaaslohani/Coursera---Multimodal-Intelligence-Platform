@@ -1,0 +1,20 @@
+[
+  {
+    "question": "Why are learners struggling with the backpropagation concept?",
+    "expected_asset_ids": ["a2-transcript-backprop", "a3-slide-backprop", "a4-quiz-backprop", "a5-discussion-backprop"],
+    "expected_segment_ids": [],
+    "notes": "expected_segment_ids is populated after seeding sample_assets and running the indexing pipeline — segment IDs are generated at ingest time. Until then, evaluate against expected_asset_ids."
+  },
+  {
+    "question": "What specific gap do learners report about the backpropagation lesson?",
+    "expected_asset_ids": ["a5-discussion-backprop"],
+    "expected_segment_ids": [],
+    "notes": "Should retrieve the discussion post requesting a worked numeric example."
+  },
+  {
+    "question": "Which quiz question has the highest failure rate for this concept, and why might that be?",
+    "expected_asset_ids": ["a4-quiz-backprop", "a2-transcript-backprop"],
+    "expected_segment_ids": [],
+    "notes": "Tests cross-modal linking between quiz failure_rate metadata and transcript explanation."
+  }
+]

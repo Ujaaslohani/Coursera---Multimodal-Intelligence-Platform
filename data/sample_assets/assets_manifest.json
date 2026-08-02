@@ -1,0 +1,47 @@
+[
+  {
+    "asset_id": "a1-video-backprop",
+    "modality": "video",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation", "gradient-descent"],
+    "storage_url": "sample_assets/course_neural_networks/backprop_lecture.mp4",
+    "permission_scope": ["course:neural-networks-101"]
+  },
+  {
+    "asset_id": "a2-transcript-backprop",
+    "modality": "transcript",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation"],
+    "storage_url": "sample_assets/course_neural_networks/transcript.json",
+    "permission_scope": ["course:neural-networks-101"]
+  },
+  {
+    "asset_id": "a3-slide-backprop",
+    "modality": "slide",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation", "chain-rule"],
+    "storage_url": "sample_assets/course_neural_networks/slides.json",
+    "permission_scope": ["course:neural-networks-101"]
+  },
+  {
+    "asset_id": "a4-quiz-backprop",
+    "modality": "quiz",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation"],
+    "storage_url": "sample_assets/course_neural_networks/quiz.json",
+    "permission_scope": ["course:neural-networks-101"]
+  },
+  {
+    "asset_id": "a5-discussion-backprop",
+    "modality": "discussion",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "concept_tags": ["neural-networks", "backpropagation"],
+    "storage_url": "sample_assets/course_neural_networks/discussion.json",
+    "permission_scope": ["course:neural-networks-101"]
+  }
+]

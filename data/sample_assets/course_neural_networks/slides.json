@@ -1,0 +1,4 @@
+[
+  { "text": "Slide 4: Backpropagation. dL/dw = dL/dy * dy/dw (chain rule).", "metadata": { "page": 4 } },
+  { "text": "Slide 5: Gradient flows backward from output layer to input layer.", "metadata": { "page": 5 } }
+]

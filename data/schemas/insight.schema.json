@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Insight",
+  "type": "object",
+  "required": ["query_id", "answer_text", "citations", "status"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "query_id": { "type": "string", "format": "uuid" },
+    "answer_text": { "type": "string" },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["segment_id"],
+        "properties": {
+          "segment_id": { "type": "string", "format": "uuid" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "status": { "type": "string", "enum": ["pending_review", "accept", "edit", "reject", "escalate"] },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

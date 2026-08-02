@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What rule does backpropagation apply to compute gradients across layers?",
+    "answer_pattern": "chain rule",
+    "difficulty": "medium",
+    "failure_rate": 0.62
+  },
+  {
+    "question": "Does the gradient at a given layer depend on the gradient of the layer before or after it?",
+    "answer_pattern": "the layer after it (closer to output)",
+    "difficulty": "hard",
+    "failure_rate": 0.71
+  }
+]

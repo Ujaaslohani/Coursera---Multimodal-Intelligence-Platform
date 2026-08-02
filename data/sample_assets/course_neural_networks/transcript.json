@@ -1,0 +1,6 @@
+[
+  { "text": "Today we're covering backpropagation, the algorithm that lets neural networks learn from error.", "start": 0.0, "end": 8.0 },
+  { "text": "We compute the gradient of the loss with respect to each weight by applying the chain rule backward through the network.", "start": 8.0, "end": 19.0 },
+  { "text": "A lot of students get confused here because we skip the intermediate partial derivative steps in the slides.", "start": 19.0, "end": 27.0 },
+  { "text": "Just remember: the gradient at each layer depends on the gradient of the layer after it, that's the 'back' in backpropagation.", "start": 27.0, "end": 36.0 }
+]

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Segment",
+  "type": "object",
+  "required": ["asset_id", "modality", "text_content"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "asset_id": { "type": "string", "format": "uuid" },
+    "modality": { "type": "string", "enum": ["video", "image", "slide", "transcript", "quiz", "discussion"] },
+    "text_content": { "type": "string" },
+    "timestamp_start": { "type": ["number", "null"] },
+    "timestamp_end": { "type": ["number", "null"] },
+    "embedding": { "type": "array", "items": { "type": "number" }, "minItems": 1536, "maxItems": 1536 },
+    "segment_metadata": { "type": "object" }
+  }
+}

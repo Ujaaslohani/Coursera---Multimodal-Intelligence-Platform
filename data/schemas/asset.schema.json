@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Asset",
+  "type": "object",
+  "required": ["modality", "owner", "storage_url"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "modality": { "type": "string", "enum": ["video", "image", "slide", "transcript", "quiz", "discussion"] },
+    "owner": { "type": "string" },
+    "topic": { "type": ["string", "null"] },
+    "concept_tags": { "type": "array", "items": { "type": "string" } },
+    "storage_url": { "type": "string" },
+    "permission_scope": { "type": "array", "items": { "type": "string" } },
+    "created_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/.env.local
+
+# Env files
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db

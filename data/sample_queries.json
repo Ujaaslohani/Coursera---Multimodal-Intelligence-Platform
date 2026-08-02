@@ -1,0 +1,17 @@
+[
+  {
+    "question_text": "Why are learners struggling with the backpropagation concept?",
+    "expected_modalities": ["transcript", "slide", "quiz", "discussion"],
+    "notes": "Should surface: slides skip intermediate derivative steps, quiz failure rate is high, discussion confirms confusion about gradient direction."
+  },
+  {
+    "question_text": "Do the slides for backpropagation match what's said in the video?",
+    "expected_modalities": ["transcript", "slide"],
+    "notes": "Assessment/visual alignment check — slide 4 formula vs transcript explanation."
+  },
+  {
+    "question_text": "What do learners say is missing from the backpropagation lesson?",
+    "expected_modalities": ["discussion"],
+    "notes": "Should surface the request for a worked numeric example."
+  }
+]

@@ -93,6 +93,21 @@ p.lede{ font-size:15px; color:var(--ink-soft); max-width:72ch; margin-top:10px; 
 .datasink{ margin:16px 0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13px; }
 .datasink .tbl{ font-family:ui-monospace,Consolas,monospace; font-size:12.5px; background:var(--good-bg); color:var(--good); padding:4px 10px; border-radius:8px; font-weight:600; }
 
+/* ---- Big single-story flow diagram ---- */
+.bigflow{ max-width:640px; margin:26px auto 0; }
+.bigstep{ display:flex; align-items:center; gap:18px; background:var(--card); border:1.5px solid var(--line); border-radius:16px; padding:18px 22px; box-shadow:var(--shadow); }
+.bigstep.accent{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 7%, var(--card)); }
+.bigicon{ flex:0 0 auto; width:52px; height:52px; border-radius:14px; background:var(--bg-alt); display:flex; align-items:center; justify-content:center; font-size:26px; }
+.bigstep.accent .bigicon{ background:color-mix(in srgb, var(--accent) 16%, var(--bg-alt)); }
+.bigtitle{ font-weight:700; font-size:15.5px; color:var(--ink); }
+.bigdesc{ font-size:13px; color:var(--ink-soft); margin-top:3px; line-height:1.5; }
+.bigarrow{ text-align:center; color:var(--arrow); font-size:22px; font-weight:bold; padding:4px 0; }
+.apitag{ display:inline-block; font-family:ui-monospace,Consolas,monospace; font-size:10.5px; font-weight:700; letter-spacing:.02em; padding:2px 8px; border-radius:100px; margin-left:6px; vertical-align:middle; white-space:nowrap; }
+.apitag.openai{ background:var(--good-bg); color:var(--good); }
+.apitag.local{ background:color-mix(in srgb, var(--accent-2) 16%, transparent); color:var(--accent-2-ink); }
+.apitag.code{ background:var(--ink-faint); color:var(--card); opacity:.55; }
+.bigdesc .apitag{ display:inline-block; margin:2px 6px 2px 0; }
+
 .table-wrap{ overflow-x:auto; margin:20px 0; border-radius:14px; border:1px solid var(--line); box-shadow:var(--shadow); }
 table{ width:100%; border-collapse:collapse; background:var(--card); font-size:13px; min-width:560px; }
 th,td{ text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
@@ -125,6 +140,143 @@ footer{ margin-top:70px; padding:28px 24px 52px; border-top:1px solid var(--line
 </header>
 
 <div class="wrap">
+
+<section>
+  <div class="kicker">The Whole System, One Story</div>
+  <h2 class="section-title">Follow one click, all the way through</h2>
+  <p class="lede">This is what happens when someone types a question into the Query Workspace and hits "Ask." Every other endpoint in this app follows the same shape — this is just the most complete example, so it's the clearest way to see the whole system at once.</p>
+
+  <div class="bigflow">
+    <div class="bigstep">
+      <div class="bigicon">🖥️</div>
+      <div class="bigtext"><div class="bigtitle">You click "Ask"</div><div class="bigdesc">In the browser, on the Query Workspace page</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">📡</div>
+      <div class="bigtext"><div class="bigtitle">The API client sends the request</div><div class="bigdesc"><span class="mono">frontend/lib/api.ts</span> — attaches your login token, calls the backend over HTTP</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🚪</div>
+      <div class="bigtext"><div class="bigtitle">The backend checks who you are</div><div class="bigdesc"><span class="mono">POST /api/query</span> — confirms your login, then checks your role is allowed to search</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🧭</div>
+      <div class="bigtext"><div class="bigtitle">An AI agent plans the search <span class="apitag openai">OpenAI · gpt-4o-mini</span></div><div class="bigdesc">A real API call, using your OpenAI key — decides how many results to fetch and the best phrase to search for, before anything is searched</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🔍</div>
+      <div class="bigtext"><div class="bigtitle">The database is searched two ways at once</div><div class="bigdesc">
+        <span class="apitag openai">OpenAI · text-embedding-3-small</span> matches by the <b>meaning of words</b> (transcripts, OCR'd slide text, quiz text, discussion posts)<br>
+        <span class="apitag local">Local model · CLIP ViT-B/32 — no API key used</span> matches by <b>what an image actually looks like</b>, pixels only<br>
+        Results from both are then combined into one list.
+      </div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">📊</div>
+      <div class="bigtext"><div class="bigtitle">Results are reordered for fairness <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">So one modality (like video) can't crowd out a relevant forum post or quiz question</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">✍️</div>
+      <div class="bigtext"><div class="bigtitle">An AI writes the answer <span class="apitag openai">OpenAI · gpt-4o-mini</span></div><div class="bigdesc">A second real API call — using only that retrieved evidence, never the whole database, and citing exactly where each claim came from</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🛡️</div>
+      <div class="bigtext"><div class="bigtitle">A second check runs <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">Not an AI — a rule that removes any citation that doesn't actually match retrieved evidence, before a human ever sees it</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Everything is saved</div><div class="bigdesc">The question, the evidence links, the answer, and a permanent record of the action — all in Postgres</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">📱</div>
+      <div class="bigtext"><div class="bigtitle">You see the answer</div><div class="bigdesc">Back in the browser — the plan, the cited evidence, and the confidence score, all visible</div></div>
+    </div>
+  </div>
+
+  <div class="flow-frame" style="margin-top:22px;">
+    <div class="flow">
+      <div class="flow-step"><div class="title">Any other action</div><div class="desc">register an asset, review a recommendation, check metrics…</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">Same 3 first steps</div><div class="desc">Browser → API client → backend route (auth + role check)</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">A simpler middle</div><div class="desc">One service function, no AI agents needed</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step"><div class="title">Same last 2 steps</div><div class="desc">Saved to Postgres → shown back in the browser</div></div>
+    </div>
+    <p class="flow-caption">The Query Workspace is the longest path through the system — everything else is a shorter version of this same shape.</p>
+  </div>
+</section>
+
+<section>
+  <div class="kicker">The Other Half Of The System</div>
+  <h2 class="section-title">Before anything is searchable — the Intake flow</h2>
+  <p class="lede">A question can only be answered from evidence that's already been through this flow. This is what happens between someone uploading a video and that video's content showing up in a search result.</p>
+
+  <div class="bigflow">
+    <div class="bigstep">
+      <div class="bigicon">📤</div>
+      <div class="bigtext"><div class="bigtitle">You register an asset</div><div class="bigdesc">Asset Intake page → <span class="mono">POST /api/assets</span> — modality, owner, and where the file lives</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🔁</div>
+      <div class="bigtext"><div class="bigtitle">The backend checks for a duplicate <span class="apitag code">Plain code — no AI call</span></div><div class="bigdesc">Same owner + modality + file already registered? Reuse it instead of creating a copy</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Saved, stage "uploaded"</div><div class="bigdesc">A new <span class="mono">Asset</span> row and a <span class="mono">ProcessingJob</span> row are written — nothing processed yet</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">⚙️</div>
+      <div class="bigtext"><div class="bigtitle">You start processing</div><div class="bigdesc"><span class="mono">POST /api/processing-jobs</span> — this is where the real work happens, all in one call</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🔀</div>
+      <div class="bigtext"><div class="bigtitle">The right tool runs, based on modality</div><div class="bigdesc">
+        🎬 Video → ffmpeg (local) pulls frames, then <span class="apitag openai">OpenAI · Whisper</span> transcribes the speech<br>
+        🖼️ Image → tesseract OCR <span class="apitag local">local</span> reads any text, <span class="apitag local">CLIP</span> looks at the picture itself<br>
+        📑 Slide (PDF) → PyMuPDF <span class="apitag local">local</span> pulls the text out directly<br>
+        ✅💬 Quiz / Discussion → cleaned and de-duplicated <span class="apitag code">local code</span>
+      </div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep accent">
+      <div class="bigicon">🧮</div>
+      <div class="bigtext"><div class="bigtitle">Everything gets turned into numbers</div><div class="bigdesc"><span class="apitag openai">OpenAI · text-embedding-3-small</span> embeds the text; images additionally get a <span class="apitag local">local CLIP</span> embedding of the actual picture</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">🗄️</div>
+      <div class="bigtext"><div class="bigtitle">Saved as Segment rows</div><div class="bigdesc">Each one stamped with the job that created it — this link is what lets the system track lifecycle stages correctly later</div></div>
+    </div>
+    <div class="bigarrow">↓</div>
+    <div class="bigstep">
+      <div class="bigicon">✅</div>
+      <div class="bigtext"><div class="bigtitle">Job reaches "searchable"</div><div class="bigdesc">From this moment on, this asset's content is part of every future cross-modal query</div></div>
+    </div>
+  </div>
+
+  <div class="flow-frame" style="margin-top:22px;">
+    <div class="flow">
+      <div class="flow-step"><div class="title">No system binary?</div><div class="desc">ffmpeg / tesseract missing on PATH</div></div>
+      <div class="flow-arrow"><span class="h">→</span><span class="v">↓</span></div>
+      <div class="flow-step accent"><div class="title">Job fails visibly</div><div class="desc">Stage → "failed", with a plain-English error saved — never silently skipped</div></div>
+    </div>
+    <p class="flow-caption">This is a deliberate design choice: an asset that can't actually be processed should never look "done" in the dashboard.</p>
+  </div>
+</section>
 
 <section>
   <div class="kicker">Architecture, One Layer at a Time</div>

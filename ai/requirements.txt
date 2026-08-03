@@ -1,3 +1,5 @@
 openai>=1.55.0
 sqlalchemy==2.0.35
 pgvector==0.3.4
+sentence-transformers>=5.0.0
+pillow>=10.0.0

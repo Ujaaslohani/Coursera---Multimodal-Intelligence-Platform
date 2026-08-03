@@ -33,18 +33,16 @@ frontend.
 
 | Folder | Status |
 |---|---|
-| `backend/` | 9 API routes from §7.3, all verified over live HTTP with a real signed JWT. Real auth (HS256, `PyJWT`, `permitted_sources` claim actually enforced — see `backend/scripts/mint_dev_token.py`). Duplicate-asset detection implemented and tested. `POST /api/processing-jobs` actually runs the pipeline synchronously (not just a status flip) — verified taking a job from `uploaded` to `indexed` over HTTP. CORS enabled for the frontend origin. |
-| `frontend/` | Next.js app, all 6 product surfaces, driven end-to-end with Playwright against the live backend — asset registration, query + cited evidence, dashboards, all confirmed rendering with real data and zero console errors. `next` bumped 14.2.15→14.2.35 (critical→high severity npm audit fix; full remediation needs a major-version bump out of this project's scope, but the app doesn't use the flagged features — no Server Actions/Middleware/`next/image`). |
-| `ai/` | Preprocessing, embeddings, permission-aware retrieval, LLM synthesis with citations, prompts, evaluation harness — proven producing grounded, cross-modal, cited answers against real seeded data. |
-| `pipelines/` | Text/discussion/quiz cleaning and slide-PDF extraction (PyMuPDF) run for real. Video (ffmpeg) and image OCR (tesseract) are **not runnable in this environment** — verified missing, not assumed; jobs for those modalities fail visibly with a clear error rather than silently no-op'ing. See `pipelines/README.md`. |
+| `backend/` | 11 API routes (the original 9 plus `POST /api/processing-jobs/{id}/archive` and `GET /api/audit-log`), all verified over live HTTP with a real signed JWT. Real auth (HS256, `PyJWT`) **plus RBAC** — `require_role_permission()` gates every mutating route by role, verified returning `403` for an out-of-scope role, not just `401` for no token. Every mutating route also writes to `audit_log`. `POST /api/processing-jobs` runs the full pipeline synchronously, advancing a job through all applicable stages of the full 9-stage lifecycle (`uploaded → … → searchable`), verified over HTTP. CORS enabled for the frontend origin. |
+| `frontend/` | Next.js app, fully redesigned (sidebar nav, component kit, Inter typeface) with 7 product surfaces including a new Audit Log page, driven end-to-end with Playwright against the live backend — asset registration, agent-pipeline-transparent querying, review, dashboards, all confirmed rendering with real data and zero console errors. Clean production build. |
+| `ai/` | Preprocessing, **dual-channel embeddings** (OpenAI text + local CLIP visual), permission-aware retrieval, **a real agent pipeline** (`ai/agents/`: retrieval planner, evidence ranker, quality validator) wrapping LLM synthesis with citations — proven producing grounded, cross-modal (text **and** visual), cited answers against real seeded data. |
+| `pipelines/` | Text/discussion/quiz cleaning, slide-PDF extraction (PyMuPDF), video (ffmpeg + Whisper), and image OCR (tesseract) all run for real — verified processing a real generated video and a real generated image end to end. `ffmpeg`/`tesseract` are external system binaries, not Python packages; install separately if missing (see `pipelines/README.md`). |
 | `data/` | Hand-authored demo course (backprop, all 6 modalities) + real data pulled live from Hugging Face (`data/scripts/fetch_datasets.py`) — both seeded into the live database. |
-| `docs/` | Architecture, API documentation, deployment guide, demo script. |
-| `tests/` | Functional/retrieval/AI-output/edge-case tests. AI-output tests are pure-unit and verified passing. DB-dependent tests skip cleanly without `TEST_DATABASE_URL` (deliberately out of scope for now). |
-| `deployment/` | Notes written; **nothing deployed yet** (deliberately out of scope for now). |
+| `docs/` | Architecture, API documentation (both updated for the agent/RBAC/audit-log/CLIP additions), deployment guide, demo script, plus two new self-contained HTML walkthroughs: `how_the_platform_works.html` (non-technical, big diagrams) and `codebase_flow_walkthrough.html` (engineering onboarding — real endpoints, prompts, and call chains). |
+| `tests/` | 15 pytest tests (functional/retrieval/AI-output/edge-case, including new RBAC and lifecycle coverage) + 11 Playwright browser tests, all passing against the live database and live frontend. |
+| `deployment/` | Notes written; **nothing deployed yet** (still out of scope). |
 
-**Known, deliberate gaps** (not deployment, not silently skipped): no
-`TEST_DATABASE_URL`-backed test run yet, no git repo initialized yet, no
-deployment to Vercel/Render yet, no demo video yet.
+**Known, deliberate gaps:** no deployment yet, no demo video yet, no `docs/screenshots/` yet, no Alembic migrations (schema managed by `create_all()` + explicit `ALTER TABLE ... IF NOT EXISTS` statements), real cloud object storage untested (the abstraction exists in `storage_service.py`, but only its local-filesystem backend is actually exercised — no `OBJECT_STORAGE_URL`/`KEY` configured in this environment).
 
 ## Design principle
 

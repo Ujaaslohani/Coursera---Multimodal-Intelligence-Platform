@@ -2,11 +2,24 @@
 
 Base URL: `http://localhost:8000` (local) — see `deployment/backend_hosting.md` for production.
 
-All routes require `Authorization: Bearer <token>`.
+All routes require `Authorization: Bearer <token>`. Beyond authentication, every
+mutating route also requires a specific **RBAC permission** (see table below) —
+an authenticated request with the wrong role gets `403`, not `200`. Every
+mutating call is also written to `audit_log` (see `GET /api/audit-log`).
+
+## Roles & permissions
+
+| Role | Permissions |
+|---|---|
+| `admin` | everything |
+| `content-team` | `assets:write`, `processing:write` |
+| `educator` | `query:run`, `insights:read` |
+| `reviewer` | `query:run`, `insights:read`, `review:write` |
+| `analyst` | `metrics:read`, `audit:read` |
 
 ## POST /api/assets
 
-Register a new video, image, slide, transcript, quiz, or discussion asset.
+Register a new video, image, slide, transcript, quiz, or discussion asset. Requires `assets:write`.
 
 ```json
 // Request
@@ -15,35 +28,48 @@ Register a new video, image, slide, transcript, quiz, or discussion asset.
   "owner": "content-team@coursera.org",
   "topic": "Backpropagation",
   "concept_tags": ["neural-networks"],
-  "storage_url": "https://storage.example.com/backprop.mp4",
+  "storage_url": "data/sample_assets/course_neural_networks/backprop_lecture.mp4",
   "permission_scope": ["course:neural-networks-101"]
 }
 // Response
-{ "asset_id": "uuid", "job_id": "uuid", "status": "uploaded" }
+{ "asset_id": "uuid", "job_id": "uuid", "status": "uploaded", "duplicate": false }
 ```
+
+Re-registering the same `owner` + `modality` + `storage_url` returns the existing asset with `"duplicate": true` instead of creating a copy.
 
 ## POST /api/processing-jobs
 
-Start preprocessing, segmentation, extraction, and metadata normalization.
+Runs the full ingestion pipeline synchronously for one asset — resolves the file (via the storage abstraction), preprocesses it per modality, embeds it (OpenAI text embeddings + real CLIP visual embeddings for images), and writes `Segment` rows. Requires `processing:write`.
 
 ```json
 // Request
 { "asset_id": "uuid" }
 // Response
-{ "job_id": "uuid", "asset_id": "uuid", "stage": "uploaded" }
+{ "job_id": "uuid", "asset_id": "uuid", "stage": "searchable", "error": null }
 ```
+
+`stage` is one of the full 9-value lifecycle: `uploaded, preprocessed, embedded, indexed, searchable, retrieved, synthesized, reviewed, archived` (plus `failed`). A job that can't actually be processed (missing `ffmpeg`/`tesseract`, unresolvable file) goes to `failed` with a human-readable `error` — never silently skipped.
 
 ## GET /api/processing-jobs/{job_id}
 
-Retrieve job status, warnings, failures, and output records.
+Retrieve job status, stage, and any error. Requires `processing:write`.
 
 ```json
 { "job_id": "uuid", "asset_id": "uuid", "stage": "indexed", "error": null }
 ```
 
+## POST /api/processing-jobs/{job_id}/archive
+
+Manually retires a job — the only lifecycle stage that's never automatic. Requires `processing:write`.
+
+```json
+// Response
+{ "job_id": "uuid", "asset_id": "uuid", "stage": "archived", "error": null }
+```
+
 ## POST /api/embeddings
 
-Generate or refresh embeddings for approved asset segments.
+Generate or refresh embeddings for approved asset segments. Requires `processing:write`.
 
 ```json
 // Request
@@ -54,18 +80,40 @@ Generate or refresh embeddings for approved asset segments.
 
 ## POST /api/query
 
-Accept a unified user query and run permission-aware retrieval across modalities.
+Accept a unified user question and run the retrieval agent pipeline: a Retrieval Planner agent (real `gpt-4o-mini` call) decides search strategy, then permission-aware retrieval runs **two independent searches at once** — text-meaning (OpenAI embeddings) and visual-meaning (CLIP, for images) — merged and re-ranked by an Evidence Ranker agent for cross-modal diversity. Requires `query:run`.
 
 ```json
 // Request
 { "question_text": "Why are learners struggling with backpropagation?", "top_k": 10 }
 // Response
-{ "query_id": "uuid", "retrieved_evidence": [ { "segment_id": "uuid", "modality": "discussion", "text_content": "...", "similarity": 0.81 } ] }
+{
+  "query_id": "uuid",
+  "retrieved_evidence": [
+    {
+      "segment_id": "uuid",
+      "asset_id": "uuid",
+      "modality": "discussion",
+      "text_content": "...",
+      "timestamp_start": null,
+      "timestamp_end": null,
+      "similarity": 0.81,
+      "permitted": true,
+      "match_type": "text"
+    }
+  ],
+  "agent_plan": {
+    "search_terms": "learners struggling backpropagation concept",
+    "top_k": 10,
+    "reasoning": "The question is moderately specific..."
+  }
+}
 ```
+
+`match_type` is `"text"` (matched by word meaning) or `"visual"` (matched by CLIP on an image's actual pixels, independent of any OCR'd text). Every returned segment's asset advances to `JobStage.retrieved`.
 
 ## POST /api/synthesize
 
-Generate grounded insight packs from retrieved evidence.
+Generate a grounded insight pack from retrieved evidence. The LLM (`gpt-4o-mini`) sees only the evidence array below — never the full database. A Quality Validator agent then strips any citation that doesn't map to a retrieved `segment_id` and caps confidence if it had to. Requires `query:run`.
 
 ```json
 // Request
@@ -74,13 +122,15 @@ Generate grounded insight packs from retrieved evidence.
 { "insight_id": "uuid", "answer_text": "...", "citations": [ { "segment_id": "uuid", "reason": "..." } ], "confidence": 0.74, "status": "pending_review" }
 ```
 
+Cited assets advance to `JobStage.synthesized`.
+
 ## GET /api/insights/{insight_id}
 
-Retrieve generated output, citations, evidence records, and status.
+Retrieve generated output, citations, and status. Requires `insights:read`.
 
 ## POST /api/review-feedback
 
-Store accept, edit, reject, escalation, and quality-feedback actions.
+Store accept, edit, reject, or escalate decisions on a generated insight. Requires `review:write` (the one permission `educator` does **not** have — a `reviewer` or `admin` role is required).
 
 ```json
 // Request
@@ -89,13 +139,40 @@ Store accept, edit, reject, escalation, and quality-feedback actions.
 { "feedback_id": "uuid", "insight_id": "uuid", "decision": "accept" }
 ```
 
+Cited assets advance to `JobStage.reviewed` — the last automatic lifecycle stage.
+
 ## GET /api/metrics
 
-Return pipeline health, retrieval quality, review outcomes, and usage metrics.
+Return pipeline health (per-stage job counts across all 9 stages), review outcomes, and coverage counts. Requires `metrics:read`.
 
 ```json
 {
-  "pipeline_health": { "total_jobs": 12, "failed_jobs": 1, "failure_rate": 0.083 },
-  "review_outcomes": { "total_insights": 5, "reviewed_insights": 3, "pending_review": 2 }
+  "pipeline_health": { "uploaded": 15, "preprocessed": 0, "embedded": 0, "indexed": 3, "searchable": 0, "retrieved": 1, "synthesized": 0, "reviewed": 0, "archived": 0, "failed": 1 },
+  "review_outcomes": { "accept": 5 },
+  "total_assets": 42,
+  "total_segments_indexed": 76,
+  "total_jobs": 20,
+  "failed_jobs": 1,
+  "total_insights": 15,
+  "pending_review": 10
 }
+```
+
+## GET /api/audit-log
+
+Governance-ready record of every mutating action across the platform — who did it, what it touched, and when. Requires `audit:read`.
+
+```json
+// GET /api/audit-log?limit=50
+[
+  {
+    "id": "uuid",
+    "actor": "admin-test",
+    "action": "insight.review",
+    "resource_type": "insight",
+    "resource_id": "uuid",
+    "details": { "decision": "accept", "notes": "..." },
+    "created_at": "2026-08-02T14:50:37.976374"
+  }
+]
 ```

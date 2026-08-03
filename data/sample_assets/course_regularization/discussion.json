@@ -1,0 +1,17 @@
+[
+  {
+    "text": "I keep mixing up lambda (regularization strength) with the learning rate — are they ever set to the same value by convention?",
+    "author": "learner482",
+    "created_at": "2026-08-01T10:15:00Z"
+  },
+  {
+    "text": "Why does penalizing large weights actually help the model generalize better? It's not intuitive to me yet.",
+    "author": "learner119",
+    "created_at": "2026-08-01T11:02:00Z"
+  },
+  {
+    "text": "Would L1 regularization behave completely differently here, or is it just a small tweak to the same formula?",
+    "author": "learner765",
+    "created_at": "2026-08-01T12:40:00Z"
+  }
+]

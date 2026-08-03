@@ -1,0 +1,17 @@
+[
+  {
+    "question": "What does L2 regularization add to the loss function?",
+    "answer_pattern": "a penalty proportional to the sum of squared weights",
+    "difficulty": "medium"
+  },
+  {
+    "question": "What problem does regularization primarily address?",
+    "answer_pattern": "overfitting, where the model memorizes training data instead of generalizing",
+    "difficulty": "easy"
+  },
+  {
+    "question": "What does the lambda parameter control in L2 regularization?",
+    "answer_pattern": "the strength of the penalty on large weights",
+    "difficulty": "hard"
+  }
+]

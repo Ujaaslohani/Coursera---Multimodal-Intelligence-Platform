@@ -29,6 +29,21 @@ export const createAsset = (payload: {
   body: JSON.stringify(payload),
 });
 
+export const checkStorage = (storageUrl: string) =>
+  request<{ storage_url: string; exists: boolean }>(`/api/assets/check-storage?storage_url=${encodeURIComponent(storageUrl)}`);
+
+export type AssetStatusItem = {
+  asset_id: string;
+  modality: string;
+  owner: string;
+  topic: string | null;
+  job_id: string | null;
+  stage: string | null;
+  created_at: string | null;
+};
+
+export const listAssets = () => request<AssetStatusItem[]>("/api/assets");
+
 export const startProcessingJob = (assetId: string) =>
   request<{ job_id: string; asset_id: string; stage: string }>("/api/processing-jobs", {
     method: "POST",
@@ -97,6 +112,29 @@ export type AuditLogEntry = {
 };
 
 export const getAuditLog = (limit = 50) => request<AuditLogEntry[]>(`/api/audit-log?limit=${limit}`);
+
+export type InsightListItem = {
+  insight_id: string;
+  query_id: string;
+  answer_preview: string;
+  confidence: number | null;
+  status: string;
+  created_at: string | null;
+};
+
+export const listInsights = (status?: string, limit = 50) =>
+  request<InsightListItem[]>(`/api/insights?${status ? `status=${status}&` : ""}limit=${limit}`);
+
+export type SegmentDetail = {
+  segment_id: string;
+  asset_id: string;
+  modality: string;
+  text_content: string | null;
+  timestamp_start: number | null;
+  timestamp_end: number | null;
+};
+
+export const getSegment = (segmentId: string) => request<SegmentDetail>(`/api/segments/${segmentId}`);
 
 export const getInsight = (insightId: string) =>
   request<{

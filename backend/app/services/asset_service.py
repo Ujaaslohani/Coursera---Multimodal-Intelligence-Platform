@@ -45,3 +45,37 @@ def register_asset(db: Session, modality: str, owner: str, topic: str | None,
 
     job = create_job(db, asset.id)
     return asset, job.id, False
+
+
+def list_assets_with_status(db: Session, limit: int = 200) -> list[dict]:
+    """Every asset with its most recent job's stage — backs the Processing
+    Monitor's "what's left to process" list. A plain Python group-by (not a
+    SQL window function) since asset volume here is small and this keeps the
+    query trivially easy to reason about."""
+    assets = db.query(Asset).order_by(Asset.created_at.desc()).limit(limit).all()
+    asset_ids = [a.id for a in assets]
+
+    latest_job_by_asset: dict[str, ProcessingJob] = {}
+    if asset_ids:
+        jobs = (
+            db.query(ProcessingJob)
+            .filter(ProcessingJob.asset_id.in_(asset_ids))
+            .order_by(ProcessingJob.created_at.desc())
+            .all()
+        )
+        for job in jobs:
+            latest_job_by_asset.setdefault(job.asset_id, job)
+
+    result = []
+    for asset in assets:
+        job = latest_job_by_asset.get(asset.id)
+        result.append({
+            "asset_id": asset.id,
+            "modality": asset.modality.value,
+            "owner": asset.owner,
+            "topic": asset.topic,
+            "job_id": job.id if job else None,
+            "stage": job.stage.value if job else None,
+            "created_at": asset.created_at.isoformat() if asset.created_at else None,
+        })
+    return result

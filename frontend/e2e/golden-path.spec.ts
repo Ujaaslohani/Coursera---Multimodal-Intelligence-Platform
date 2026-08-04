@@ -55,7 +55,11 @@ test.describe("Asset Intake", () => {
 
     await page.getByRole("button", { name: "Register asset" }).click();
 
-    await expect(page.getByText(/Registered asset .+ — processing job .+/)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Registered — a processing job was created.")).toBeVisible({ timeout: 15000 });
+    // Copyable ID chips (this message's whole reason for existing per the user's request).
+    await expect(page.getByText("Asset ID")).toBeVisible();
+    await expect(page.getByText("Job ID")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Process this asset/ })).toBeVisible();
   });
 
   test("shows a validation-driven error for a bad backend response gracefully", async ({ page }) => {
@@ -175,5 +179,34 @@ test.describe("Processing Monitor", () => {
   test("renders without console errors", async ({ page }) => {
     await page.goto("/processing");
     await expect(page.getByRole("heading", { level: 1, name: "Processing Monitor" })).toBeVisible();
+  });
+
+  test("asset list filters between processed and not-processed, and 'Use ID' fills the form", async ({ page }) => {
+    await page.goto("/processing");
+    // "All (0)" renders immediately, before the async asset-list fetch resolves —
+    // wait for a genuinely nonzero count, not just the label's presence.
+    await expect(async () => {
+      const text = await page.getByText(/^All \(\d+\)$/).textContent();
+      expect(Number(text?.match(/\d+/)?.[0])).toBeGreaterThan(0);
+    }).toPass({ timeout: 10000 });
+
+    await page.getByRole("button", { name: /^Processed \(\d+\)$/ }).click();
+    const processedRows = await page.locator("tbody tr").count();
+    expect(processedRows).toBeGreaterThan(0);
+
+    // Every visible stage badge in the "Processed" filter must be at or past `searchable`.
+    const badgeTexts = await page.locator("tbody tr td:nth-child(3)").allTextContents();
+    for (const text of badgeTexts) {
+      expect(["Searchable", "Retrieved", "Synthesized", "Reviewed", "Archived"]).toContain(text.trim());
+    }
+
+    await page.getByRole("button").filter({ hasText: /^Use ID$/ }).first().click();
+    const assetIdInput = page.getByLabel("Asset ID");
+    await expect(assetIdInput).not.toHaveValue("");
+  });
+
+  test("prefills Asset ID from a ?asset_id= query param", async ({ page }) => {
+    await page.goto("/processing?asset_id=deadbeef-0000-0000-0000-000000000000");
+    await expect(page.getByLabel("Asset ID")).toHaveValue("deadbeef-0000-0000-0000-000000000000");
   });
 });

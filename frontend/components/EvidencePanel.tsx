@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { EvidenceItem } from "@/lib/api";
 import { modalityMeta } from "@/lib/domain";
 import { Badge } from "@/components/ui/Badge";
@@ -33,6 +34,12 @@ export default function EvidencePanel({ evidence }: { evidence: EvidenceItem[] }
               </span>
             </div>
             <p className="whitespace-pre-line text-sm text-ink-700">{item.text_content}</p>
+            <Link
+              href={`/processing?asset_id=${item.asset_id}`}
+              className="mt-1.5 inline-block text-xs text-brand-600 hover:underline"
+            >
+              View source asset →
+            </Link>
           </div>
         );
       })}

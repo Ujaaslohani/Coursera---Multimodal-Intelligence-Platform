@@ -48,3 +48,12 @@ def synthesize_insight(db: Session, query_id: str, retrieved_evidence: list[dict
 
 def get_insight(db: Session, insight_id: str) -> Insight | None:
     return db.query(Insight).filter(Insight.id == insight_id).first()
+
+
+def list_insights(db: Session, status: str | None = None, limit: int = 50) -> list[Insight]:
+    """Backs the Recommendation Workspace's pending-review list — without
+    this, a reviewer needs to already know an insight_id to review anything."""
+    query = db.query(Insight)
+    if status:
+        query = query.filter(Insight.status == status)
+    return query.order_by(Insight.created_at.desc()).limit(limit).all()

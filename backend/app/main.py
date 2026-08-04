@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
-from app.api import assets, processing_jobs, embeddings, query, synthesize, insights, review_feedback, metrics, audit_log
+from app.api import assets, processing_jobs, embeddings, query, synthesize, insights, review_feedback, metrics, audit_log, segments
 from app.database.connection import Base, engine, ensure_vector_extension, ensure_new_columns
 from app.database import models  # noqa: F401 — registers models on Base before create_all
 
@@ -39,6 +39,7 @@ app.include_router(insights.router, tags=["insights"])
 app.include_router(review_feedback.router, tags=["review-feedback"])
 app.include_router(metrics.router, tags=["metrics"])
 app.include_router(audit_log.router, tags=["audit-log"])
+app.include_router(segments.router, tags=["segments"])
 
 
 @app.get("/health")

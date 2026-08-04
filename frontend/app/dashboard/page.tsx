@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMetrics } from "@/lib/api";
 import FrictionThemeChart from "@/dashboards/FrictionThemeChart";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Alert } from "@/components/ui/Alert";
+import { RefreshBar } from "@/components/ui/RefreshBar";
 
 type Metrics = {
   pipeline_health?: Record<string, number>;
@@ -23,12 +24,24 @@ const toThemes = (counts: Record<string, number> | undefined) =>
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(() => {
+    setRefreshing(true);
+    getMetrics()
+      .then((m) => {
+        setMetrics(m as Metrics);
+        setLastUpdated(new Date());
+        setError(null);
+      })
+      .catch((err) => setError((err as Error).message))
+      .finally(() => setRefreshing(false));
+  }, []);
 
   useEffect(() => {
-    getMetrics()
-      .then((m) => setMetrics(m as Metrics))
-      .catch((err) => setError((err as Error).message));
-  }, []);
+    load();
+  }, [load]);
 
   return (
     <div>
@@ -36,6 +49,7 @@ export default function DashboardPage() {
         eyebrow="Stage 9 · Governance"
         title="Learning Analytics Dashboard"
         description="Friction themes, pipeline health across the full 9-stage lifecycle, and review outcomes — sourced live from GET /api/metrics."
+        actions={<RefreshBar lastUpdated={lastUpdated} onRefresh={load} refreshing={refreshing} />}
       />
 
       {error && <Alert tone="danger">{error}</Alert>}

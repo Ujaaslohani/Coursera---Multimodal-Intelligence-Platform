@@ -1,0 +1,10 @@
+# Explicit config, since dashboard auto-detection of the Next.js Runtime
+# plugin didn't attach it — the build log showed "0 new function(s) to
+# upload", meaning .next/ was being served as plain static files instead of
+# through the plugin's routing, which is why every route 404'd.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

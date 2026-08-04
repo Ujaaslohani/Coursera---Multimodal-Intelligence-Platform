@@ -1,6 +1,6 @@
 # API Documentation
 
-Base URL: `http://localhost:8000` (local) — see `deployment/backend_hosting.md` for production.
+Base URL: `http://localhost:8000` (local), `https://coursera-multimodal-intelligence-platform.onrender.com` (live) — see `deployment/backend_hosting.md` for hosting details, including a known free-tier memory limitation that can cause transient `502`s.
 
 All routes require `Authorization: Bearer <token>`. Beyond authentication, every
 mutating route also requires a specific **RBAC permission** (see table below) —
@@ -36,6 +36,35 @@ Register a new video, image, slide, transcript, quiz, or discussion asset. Requi
 ```
 
 Re-registering the same `owner` + `modality` + `storage_url` returns the existing asset with `"duplicate": true` instead of creating a copy.
+
+## GET /api/assets/check-storage
+
+Lightweight pre-flight check so the Asset Intake form can warn about a typo'd path before registering an asset that will fail at processing time. Requires `assets:write`.
+
+```
+GET /api/assets/check-storage?storage_url=data/sample_assets/.../file.mp4
+```
+```json
+{ "storage_url": "data/sample_assets/.../file.mp4", "exists": true }
+```
+
+## GET /api/assets
+
+Every asset with its most recent processing stage — backs the Processing Monitor's processed/unprocessed list. Requires `processing:write`.
+
+```json
+[
+  {
+    "asset_id": "uuid",
+    "modality": "video",
+    "owner": "content-team@coursera.org",
+    "topic": "Backpropagation",
+    "job_id": "uuid",
+    "stage": "searchable",
+    "created_at": "2026-08-02T14:50:37.976374"
+  }
+]
+```
 
 ## POST /api/processing-jobs
 
@@ -124,9 +153,44 @@ Generate a grounded insight pack from retrieved evidence. The LLM (`gpt-4o-mini`
 
 Cited assets advance to `JobStage.synthesized`.
 
+## GET /api/insights
+
+List insights, optionally filtered by `status` (e.g. `pending_review`) — backs the Recommendation Workspace's browsable review queue. Requires `insights:read`.
+
+```
+GET /api/insights?status=pending_review&limit=50
+```
+```json
+[
+  {
+    "insight_id": "uuid",
+    "query_id": "uuid",
+    "answer_preview": "Learners are struggling with backpropagation because…",
+    "confidence": 0.74,
+    "status": "pending_review",
+    "created_at": "2026-08-02T14:50:37.976374"
+  }
+]
+```
+
 ## GET /api/insights/{insight_id}
 
 Retrieve generated output, citations, and status. Requires `insights:read`.
+
+## GET /api/segments/{segment_id}
+
+Retrieve one segment's content — used to preview what a citation actually says (e.g. the real transcript text or slide OCR) instead of showing a bare, opaque `segment_id`. Gated on the same `insights:read` permission as viewing the insight that cites it.
+
+```json
+{
+  "segment_id": "uuid",
+  "asset_id": "uuid",
+  "modality": "discussion",
+  "text_content": "...",
+  "timestamp_start": null,
+  "timestamp_end": null
+}
+```
 
 ## POST /api/review-feedback
 
